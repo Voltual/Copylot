@@ -20,9 +20,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.border
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.SolidBorder
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +34,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.*
+import androidx.core.app.ActivityOptionsCompat
 
 // JSON 配置的数据结构
 @Serializable
@@ -152,7 +155,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.outline)
+                        .draw.border(1.dp, MaterialTheme.colorScheme.outline)
                         .padding(8.dp),
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.onSurface,
@@ -187,9 +190,7 @@ class MainActivity : ComponentActivity() {
 
                     Button(
                         onClick = {
-                            saveResultLauncher.launch(
-                                arrayOf("result.txt")
-                            )
+                            saveResultLauncher.launch("result.txt")
                         },
                         enabled = resultMessage.isNotEmpty() && !isProcessing
                     ) {
@@ -208,7 +209,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.outline)
+                            .draw.border(1.dp, MaterialTheme.colorScheme.outline)
                             .padding(8.dp),
                         style = TextStyle(
                             fontSize = 12.sp,
@@ -376,3 +377,18 @@ class MainActivity : ComponentActivity() {
 
 // 全局变量存储文档树 Uri
 var documentFileTree: Uri? = null
+
+// 重启主 Activity 的辅助函数
+fun restartMainActivity(context: Context) {
+    val packageManager = context.packageManager
+    val intent = packageManager.getLaunchIntentForPackage(context.packageManager.getPackageInfo(context.packageName, 0).packageName)
+    intent?.let {
+        it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        val options = androidx.core.app.ActivityOptionsCompat.makeCustomAnimation(
+            context,
+            android.R.anim.fade_in,
+            android.R.anim.fade_out
+        )
+        context.startActivity(it, options.toBundle())
+    }
+}
