@@ -94,10 +94,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.github.dhaval2404:imagepicker:2.1")
 
-    // ===== 播放器依赖 =====
-    implementation("com.sdtv.haikan:ijkplayer:0.0.2")
-    implementation(project(":DanmakuFlameMaster"))
-
     // 用于颜色提取
     implementation("androidx.palette:palette-ktx:1.0.0")
 
