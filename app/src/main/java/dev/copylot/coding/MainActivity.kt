@@ -1,30 +1,22 @@
 package dev.copylot.coding
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
-import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
-import androidx.activity.result.ActivityResult
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.border
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidBorder
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.*
-import androidx.core.app.ActivityOptionsCompat
+import java.io.File
 
 // JSON 配置的数据结构
 @Serializable
@@ -65,7 +56,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private val json = Json { ignoreUnknownKeys = true }
-    private var rootUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,31 +100,6 @@ class MainActivity : ComponentActivity() {
         var isProcessing by remember { mutableStateOf(false) }
         var resultMessage by remember { mutableStateOf("") }
 
-        // 文件选择器
-        val directoryPickerLauncher = registerForActivityResult(OpenDocumentTree()) { uri: Uri? ->
-            uri?.let {
-                rootUri = uri
-                documentFileTree = it
-                Toast.makeText(context, "已选择目录", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // 保存结果的文件选择器
-        val saveResultLauncher = registerForActivityResult(CreateDocument()) { uri: Uri? ->
-            uri?.let {
-                scope.launch {
-                    try {
-                        contentResolver.openOutputStream(it)?.use { output ->
-                            output.write(resultMessage.toByteArray())
-                        }
-                        Toast.makeText(context, "结果已保存", Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
-
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
@@ -155,7 +120,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .draw.border(1.dp, MaterialTheme.colorScheme.outline)
+                        .border(1.dp, MaterialTheme.colorScheme.outline)
                         .padding(8.dp),
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.onSurface,
@@ -169,13 +134,6 @@ class MainActivity : ComponentActivity() {
                 // 操作按钮
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { directoryPickerLauncher.launch(null) },
-                        enabled = !isProcessing
-                    ) {
-                        Text("选择目录")
-                    }
-
-                    Button(
                         onClick = {
                             scope.launch {
                                 isProcessing = true
@@ -186,15 +144,6 @@ class MainActivity : ComponentActivity() {
                         enabled = !isProcessing
                     ) {
                         Text("执行修改")
-                    }
-
-                    Button(
-                        onClick = {
-                            saveResultLauncher.launch("result.txt")
-                        },
-                        enabled = resultMessage.isNotEmpty() && !isProcessing
-                    ) {
-                        Text("保存结果")
                     }
                 }
 
@@ -209,7 +158,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .draw.border(1.dp, MaterialTheme.colorScheme.outline)
+                            .border(1.dp, MaterialTheme.colorScheme.outline)
                             .padding(8.dp),
                         style = TextStyle(
                             fontSize = 12.sp,
@@ -219,7 +168,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Spacer(Modifier.height(8.dp))
-                Text("提示：请先点击'选择目录'按钮选择要修改的文件所在目录")
+                Text("提示：请确保应用有文件读写权限")
             }
         }
     }
@@ -228,11 +177,6 @@ class MainActivity : ComponentActivity() {
     private suspend fun processJson(jsonString: String, context: Context): String = withContext(Dispatchers.IO) {
         return@withContext try {
             val config = json.decodeFromString<Config>(jsonString)
-            
-            if (rootUri == null) {
-                return@withContext "错误：请先选择文件目录"
-            }
-
             val results = mutableListOf<String>()
             
             for (mod in config.modifications) {
@@ -375,20 +319,11 @@ class MainActivity : ComponentActivity() {
 }"""
 }
 
-// 全局变量存储文档树 Uri
-var documentFileTree: Uri? = null
-
-// 重启主 Activity 的辅助函数
-fun restartMainActivity(context: Context) {
-    val packageManager = context.packageManager
-    val intent = packageManager.getLaunchIntentForPackage(context.packageManager.getPackageInfo(context.packageName, 0).packageName)
+// 添加到 MainActivity.kt 文件末尾
+fun restartMainActivity(context: android.content.Context) {
+    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
     intent?.let {
-        it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-        val options = androidx.core.app.ActivityOptionsCompat.makeCustomAnimation(
-            context,
-            android.R.anim.fade_in,
-            android.R.anim.fade_out
-        )
-        context.startActivity(it, options.toBundle())
+        it.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(it)
     }
 }
