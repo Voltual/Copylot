@@ -28,6 +28,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun restartMainActivity(context: Context) {
+    val packageManager = context.packageManager
+    val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+    intent?.let {
+        it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        val options = ActivityOptions.makeCustomAnimation(
+            context,
+            android.R.anim.fade_in,
+            android.R.anim.fade_out
+        )
+        context.startActivity(it, options.toBundle())
+    }
+}
+
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(text = "Hello $name!", modifier = modifier)

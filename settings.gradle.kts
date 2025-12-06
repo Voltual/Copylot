@@ -1,31 +1,34 @@
+// settings.gradle.kts
+
 pluginManagement {
   repositories {
-   maven { url 'https://maven.aliyun.com/repository/public/' }
-   maven { url 'https://maven.aliyun.com/repository/google/' }
-   maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
-   maven { url 'https://dl.bintray.com/ppartisan/maven/' }
-   maven { url 'https://clojars.org/repo/' }
-   maven { url 'https://jitpack.io' }
     gradlePluginPortal()
     google()
     mavenCentral()
+    // 添加阿里云镜像
+    maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
   }
 }
 
 dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+  
   repositories {
-    maven { url 'https://maven.aliyun.com/repository/public/' }
-    maven { url 'https://maven.aliyun.com/repository/google/' }
-    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
-    maven { url 'https://dl.bintray.com/ppartisan/maven/' }
-    maven { url 'https://clojars.org/repo/' }
-    maven { url 'https://jitpack.io' }
+    // 阿里云镜像 (必须添加)
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+    maven { url = uri("https://maven.aliyun.com/repository/google") }
+    
+    // 标准仓库
     google()
     mavenCentral()
+    
+    // PhotoView 所需仓库
+    maven { url = uri("https://jitpack.io") }
+    
+    // **NEW & FINAL FIX**: 将本地文件夹声明为一个 Maven 仓库
+    maven { url = uri("$rootDir/ijkplayer-main") }
   }
 }
 
 rootProject.name = "Copylot"
-
 include(":app")
